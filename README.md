@@ -10,9 +10,13 @@
 
 ## Members
 
-| | | | |
+| <a href="https://github.com/ccjngwn"><img src="https://github.com/ccjngwn.png" width="120"/></a> | <a href="https://github.com/syeon111"><img src="https://github.com/syeon111.png" width="120"/></a> | <a href="https://github.com/hyunj24"><img src="https://github.com/hyunj24.png" width="120"/></a> | <a href="https://github.com/Baeseona"><img src="https://github.com/Baeseona.png" width="120"/></a> |
 |:---:|:---:|:---:|:---:|
-| | | | |
+| <a href="https://github.com/ccjngwn">채정원</a> | <a href="https://github.com/syeon111">박수연</a> | <a href="https://github.com/hyunj24">박현정</a> | <a href="https://github.com/Baeseona">배선아</a> |
+
+| <a href="https://github.com/hyeonszz"><img src="https://github.com/hyeonszz.png" width="120"/></a> | <a href="https://github.com/Junseung-Ock"><img src="https://github.com/Junseung-Ock.png" width="120"/></a> | <a href="https://github.com/leehwx"><img src="https://github.com/leehwx.png" width="120"/></a> | <a href="https://github.com/junjunseo"><img src="https://github.com/junjunseo.png" width="120"/></a> |
+|:---:|:---:|:---:|:---:|
+| <a href="https://github.com/hyeonszz">신현주</a> | <a href="https://github.com/Junseung-Ock">옥준승</a> | <a href="https://github.com/leehwx">이해원</a> | <a href="https://github.com/junjunseo">임준서</a> |
 
 ---
 
@@ -119,13 +123,13 @@ git switch -c <github-id>-week-01
 
 ```bash
 git add .
-git commit -m "Docs: n주차 chapter0n.md 생성"
+git commit -m "docs: n주차 chapter0n.md 생성"
 git push -u origin <github-id>-week-01
 ```
 
 커밋 메시지 예시:
-- `Docs: 1주차 chapter01.md 생성`
-- `Docs: 2주차 presentation.md 수정`
+- `docs: 1주차 chapter01.md 생성`
+- `docs: 2주차 presentation.md 수정`
 
 #### 5. GitHub에서 PR 생성
 
