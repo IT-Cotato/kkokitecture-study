@@ -1,0 +1,532 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Token Bucket Rate Limiter</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg: #0f1117;
+      --surface: #1a1d27;
+      --surface2: #22263a;
+      --border: #2e3248;
+      --text: #e8eaf0;
+      --muted: #7b80a0;
+      --blue: #4f8ef7;
+      --blue-dim: #1e3a6e;
+      --green: #3ecf6a;
+      --green-dim: #0f3320;
+      --red: #f74f4f;
+      --red-dim: #3a1010;
+      --amber: #f7a84f;
+      --amber-dim: #3a2510;
+      --radius: 10px;
+    }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: 'Courier New', Courier, monospace;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 2rem 1rem;
+    }
+
+    h1 {
+      font-size: 1.4rem;
+      font-weight: 700;
+      letter-spacing: 0.08em;
+      color: var(--blue);
+      margin-bottom: 0.3rem;
+      text-transform: uppercase;
+    }
+
+    .subtitle {
+      font-size: 0.78rem;
+      color: var(--muted);
+      margin-bottom: 2rem;
+      letter-spacing: 0.04em;
+    }
+
+    .main-grid {
+      display: grid;
+      grid-template-columns: 220px 1fr;
+      gap: 1.5rem;
+      width: 100%;
+      max-width: 860px;
+    }
+
+    /* ---- BUCKET COLUMN ---- */
+    .bucket-col { display: flex; flex-direction: column; gap: 1rem; }
+
+    .bucket-container {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 1.2rem;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 1rem;
+    }
+
+    .bucket-label { font-size: 0.72rem; color: var(--muted); letter-spacing: 0.06em; text-transform: uppercase; }
+
+    .bucket-svg-wrap { position: relative; width: 100px; height: 140px; }
+
+    .bucket-body {
+      position: absolute;
+      bottom: 0; left: 8px; right: 8px;
+      height: 120px;
+      border: 2px solid var(--border);
+      border-top: none;
+      border-radius: 0 0 14px 14px;
+      overflow: hidden;
+      background: var(--bg);
+    }
+
+    .bucket-fill {
+      position: absolute;
+      bottom: 0; left: 0; right: 0;
+      transition: height 0.35s ease, background 0.35s ease;
+    }
+
+    .bucket-tokens-text {
+      font-size: 2rem;
+      font-weight: 700;
+      color: var(--text);
+      letter-spacing: -0.02em;
+    }
+
+    .bucket-tokens-sub { font-size: 0.7rem; color: var(--muted); }
+
+    /* refill progress */
+    .refill-wrap { width: 100%; }
+    .refill-row {
+      display: flex;
+      justify-content: space-between;
+      font-size: 0.7rem;
+      color: var(--muted);
+      margin-bottom: 5px;
+    }
+    .refill-track {
+      height: 5px;
+      background: var(--surface2);
+      border-radius: 3px;
+      overflow: hidden;
+    }
+    .refill-fill {
+      height: 100%;
+      background: var(--blue);
+      border-radius: 3px;
+      transition: width 0.1s linear;
+    }
+
+    /* controls */
+    .controls-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 1.2rem;
+      display: flex;
+      flex-direction: column;
+      gap: 1rem;
+    }
+
+    .ctrl-label {
+      font-size: 0.7rem;
+      color: var(--muted);
+      letter-spacing: 0.05em;
+      text-transform: uppercase;
+      margin-bottom: 4px;
+    }
+
+    .ctrl-val {
+      font-size: 1.3rem;
+      font-weight: 700;
+      color: var(--blue);
+      margin-bottom: 6px;
+    }
+
+    input[type=range] {
+      width: 100%;
+      accent-color: var(--blue);
+      cursor: pointer;
+    }
+
+    /* ---- RIGHT COLUMN ---- */
+    .right-col { display: flex; flex-direction: column; gap: 1rem; }
+
+    .stats-row { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
+
+    .stat-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 0.9rem 1rem;
+      text-align: center;
+    }
+
+    .stat-val { font-size: 1.8rem; font-weight: 700; }
+    .stat-lbl { font-size: 0.7rem; color: var(--muted); margin-top: 3px; letter-spacing: 0.04em; }
+    .stat-card.s-total .stat-val { color: var(--text); }
+    .stat-card.s-allowed .stat-val { color: var(--green); }
+    .stat-card.s-blocked .stat-val { color: var(--red); }
+
+    .btn-row { display: flex; gap: 8px; flex-wrap: wrap; }
+
+    button {
+      padding: 9px 20px;
+      border-radius: 7px;
+      border: 1px solid var(--border);
+      background: var(--surface2);
+      color: var(--text);
+      font-family: inherit;
+      font-size: 0.82rem;
+      cursor: pointer;
+      letter-spacing: 0.03em;
+      transition: background 0.15s, transform 0.1s;
+    }
+    button:hover { background: var(--border); }
+    button:active { transform: scale(0.97); }
+
+    .btn-single { background: var(--blue-dim); color: var(--blue); border-color: var(--blue); }
+    .btn-single:hover { background: #243d6a; }
+
+    .btn-burst { background: var(--amber-dim); color: var(--amber); border-color: var(--amber); }
+    .btn-burst:hover { background: #4a2f12; }
+
+    .btn-reset { background: var(--surface2); color: var(--muted); }
+
+    /* LOG */
+    .log-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      flex: 1;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .log-header {
+      padding: 0.75rem 1rem;
+      border-bottom: 1px solid var(--border);
+      font-size: 0.7rem;
+      color: var(--muted);
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+    }
+
+    .log-list {
+      flex: 1;
+      overflow-y: auto;
+      max-height: 300px;
+      padding: 0.5rem;
+      display: flex;
+      flex-direction: column;
+      gap: 5px;
+    }
+
+    .log-list::-webkit-scrollbar { width: 4px; }
+    .log-list::-webkit-scrollbar-track { background: transparent; }
+    .log-list::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+
+    .log-item {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 7px 10px;
+      border-radius: 6px;
+      font-size: 0.78rem;
+      animation: slideIn 0.18s ease;
+    }
+
+    @keyframes slideIn {
+      from { opacity: 0; transform: translateY(-4px); }
+      to   { opacity: 1; transform: none; }
+    }
+
+    .log-item.allowed { background: var(--green-dim); border-left: 2px solid var(--green); }
+    .log-item.blocked { background: var(--red-dim); border-left: 2px solid var(--red); }
+
+    .log-icon { font-size: 0.8rem; flex-shrink: 0; width: 16px; text-align: center; }
+    .log-item.allowed .log-icon { color: var(--green); }
+    .log-item.blocked .log-icon { color: var(--red); }
+
+    .log-time { color: var(--muted); font-size: 0.7rem; flex-shrink: 0; }
+    .log-msg { color: var(--text); }
+    .log-empty { font-size: 0.8rem; color: var(--muted); padding: 1rem; text-align: center; }
+
+    /* auto-send */
+    .auto-row {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 0.9rem 1.1rem;
+    }
+
+    .auto-label { font-size: 0.78rem; color: var(--muted); flex: 1; }
+
+    .toggle {
+      position: relative;
+      width: 40px; height: 22px;
+      background: var(--surface2);
+      border-radius: 11px;
+      border: 1px solid var(--border);
+      cursor: pointer;
+      transition: background 0.2s;
+      flex-shrink: 0;
+    }
+    .toggle.on { background: var(--blue); border-color: var(--blue); }
+    .toggle::after {
+      content: '';
+      position: absolute;
+      top: 2px; left: 2px;
+      width: 16px; height: 16px;
+      border-radius: 50%;
+      background: var(--muted);
+      transition: transform 0.2s, background 0.2s;
+    }
+    .toggle.on::after { transform: translateX(18px); background: #fff; }
+
+    .auto-speed-wrap { display: flex; align-items: center; gap: 6px; font-size: 0.75rem; color: var(--muted); }
+    .auto-speed-wrap input { width: 80px; accent-color: var(--blue); }
+  </style>
+</head>
+<body>
+
+<h1>Token Bucket Simulator</h1>
+<p class="subtitle">처리율 제한 장치 · Rate Limiter · 토큰 버킷 알고리즘</p>
+
+<div class="main-grid">
+
+  <!-- LEFT: BUCKET -->
+  <div class="bucket-col">
+    <div class="bucket-container">
+      <div class="bucket-label">버킷 상태</div>
+      <div class="bucket-svg-wrap">
+        <div class="bucket-body">
+          <div class="bucket-fill" id="bucket-fill"></div>
+        </div>
+      </div>
+      <div class="bucket-tokens-text" id="token-count">10</div>
+      <div class="bucket-tokens-sub">토큰 남음</div>
+
+      <div class="refill-wrap">
+        <div class="refill-row">
+          <span>다음 보충까지</span>
+          <span id="refill-cd">1.0s</span>
+        </div>
+        <div class="refill-track">
+          <div class="refill-fill" id="refill-fill" style="width:100%"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- controls -->
+    <div class="controls-card">
+      <div>
+        <div class="ctrl-label">버킷 크기 (최대 토큰)</div>
+        <div class="ctrl-val" id="cap-disp">10</div>
+        <input type="range" id="cap-slider" min="1" max="20" value="10" step="1">
+      </div>
+      <div>
+        <div class="ctrl-label">공급률 (토큰/초)</div>
+        <div class="ctrl-val" id="rate-disp">0.2</div>
+        <input type="range" id="rate-slider" min="0.1" max="10" value="0.2" step="0.1">
+      </div>
+    </div>
+  </div>
+
+  <!-- RIGHT -->
+  <div class="right-col">
+
+    <!-- stats -->
+    <div class="stats-row">
+      <div class="stat-card s-total">
+        <div class="stat-val" id="s-total">0</div>
+        <div class="stat-lbl">총 요청</div>
+      </div>
+      <div class="stat-card s-allowed">
+        <div class="stat-val" id="s-allowed">0</div>
+        <div class="stat-lbl">허용</div>
+      </div>
+      <div class="stat-card s-blocked">
+        <div class="stat-val" id="s-blocked">0</div>
+        <div class="stat-lbl">차단 (429)</div>
+      </div>
+    </div>
+
+    <!-- buttons -->
+    <div class="btn-row">
+      <button class="btn-single" onclick="handleRequest(1)">요청 1개 보내기</button>
+      <button class="btn-burst"  onclick="handleRequest(5)">요청 5개 한꺼번에 (Burst)</button>
+      <button class="btn-burst"  onclick="handleRequest(10)">요청 10개 한꺼번에</button>
+      <button class="btn-reset"  onclick="resetAll()">초기화</button>
+    </div>
+
+    <!-- auto send -->
+    <div class="auto-row">
+      <span class="auto-label">자동 요청 (초당 N개)</span>
+      <div class="auto-speed-wrap">
+        <span>속도</span>
+        <input type="range" id="auto-speed" min="1" max="10" value="3" step="1">
+        <span id="auto-speed-disp">3/s</span>
+      </div>
+      <div class="toggle" id="auto-toggle" onclick="toggleAuto()"></div>
+    </div>
+
+    <!-- log -->
+    <div class="log-card">
+      <div class="log-header">요청 로그 (최근 50건)</div>
+      <div class="log-list" id="log-list">
+        <div class="log-empty">요청을 보내면 여기에 결과가 표시됩니다.</div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<script>
+  // ── State ──────────────────────────────────────────────
+  let cap = 10, rate = 0.2;
+  let tokens = cap;
+  let total = 0, allowed = 0, blocked = 0;
+  let logItems = [];
+  let refillProgress = 0;
+  let lastTick = Date.now();
+  let autoOn = false, autoInterval = null;
+  let logEmpty = true;
+
+  // ── Core Algorithm ─────────────────────────────────────
+  function tryRequest() {
+    total++;
+    const now = new Date().toLocaleTimeString('ko-KR');
+    if (tokens >= 1) {
+      tokens = Math.max(tokens - 1, 0);
+      allowed++;
+      pushLog('allowed', now, `토큰 소비 → 남은 토큰: ${Math.floor(tokens)}개`);
+    } else {
+      blocked++;
+      pushLog('blocked', now, `토큰 없음 → 차단 (HTTP 429)`);
+    }
+    updateStats(); // 버킷 UI 업데이트
+    updateBucket(); // 통계 UI 업데이트
+  }
+
+  function handleRequest(n) {
+    for (let i = 0; i < n; i++) tryRequest();
+  }
+
+  // ── Refill tick ────────────────────────────────
+  function tick() {
+    const now = Date.now();
+    const dt = (now - lastTick) / 1000;
+    lastTick = now;
+
+    const interval = 1 / rate;
+    refillProgress += dt;
+
+    const pct = Math.min(refillProgress / interval, 1);
+    document.getElementById('refill-fill').style.width = (pct * 100) + '%';
+    const rem = Math.max(interval - refillProgress, 0);
+    document.getElementById('refill-cd').textContent = rem.toFixed(1) + 's';
+
+    if (refillProgress >= interval) {
+      refillProgress -= interval;
+      if (tokens < cap) {
+        tokens = Math.min(tokens + 1, cap);
+        updateBucket();
+      }
+    }
+  }
+
+  // ── UI helpers ─────────────────────────────────────────
+  function updateBucket() {
+    const pct = tokens / cap;
+    document.getElementById('token-count').textContent = Math.floor(tokens);
+    document.getElementById('bucket-fill').style.height = (pct * 100) + '%';
+    const color = pct > 0.4 ? '#1e3a6e' : pct > 0.15 ? '#3a2510' : '#3a1010';
+    const stroke = pct > 0.4 ? '#4f8ef7' : pct > 0.15 ? '#f7a84f' : '#f74f4f';
+    document.getElementById('bucket-fill').style.background = color;
+    document.getElementById('bucket-fill').style.borderTop = `2px solid ${stroke}`;
+  }
+
+  function updateStats() {
+    document.getElementById('s-total').textContent = total;
+    document.getElementById('s-allowed').textContent = allowed;
+    document.getElementById('s-blocked').textContent = blocked;
+  }
+
+  function pushLog(type, time, msg) {
+    const list = document.getElementById('log-list');
+    if (logEmpty) { list.innerHTML = ''; logEmpty = false; }
+
+    const el = document.createElement('div');
+    el.className = 'log-item ' + type;
+    el.innerHTML = `
+      <span class="log-icon">${type === 'allowed' ? '✓' : '✕'}</span>
+      <span class="log-time">${time}</span>
+      <span class="log-msg">${msg}</span>
+    `;
+    list.insertBefore(el, list.firstChild);
+    logItems.push(el);
+    if (logItems.length > 50) {
+      const old = logItems.shift();
+      if (old.parentNode) old.parentNode.removeChild(old);
+    }
+  }
+
+  function resetAll() {
+    tokens = cap; total = 0; allowed = 0; blocked = 0;
+    refillProgress = 0; lastTick = Date.now();
+    logItems = []; logEmpty = true;
+    document.getElementById('log-list').innerHTML = '<div class="log-empty">요청을 보내면 여기에 결과가 표시됩니다.</div>';
+    updateBucket(); updateStats();
+  }
+
+  // ── Sliders ────────────────────────────────────────────
+  document.getElementById('cap-slider').addEventListener('input', function() {
+    cap = +this.value;
+    tokens = Math.min(tokens, cap);
+    document.getElementById('cap-disp').textContent = cap;
+    updateBucket();
+  });
+
+  document.getElementById('rate-slider').addEventListener('input', function() {
+    rate = +this.value;
+    document.getElementById('rate-disp').textContent = rate;
+  });
+
+  document.getElementById('auto-speed').addEventListener('input', function() {
+    document.getElementById('auto-speed-disp').textContent = this.value + '/s';
+    if (autoOn) { clearInterval(autoInterval); startAuto(); }
+  });
+
+  // ── Auto mode ──────────────────────────────────────────
+  function startAuto() {
+    const rps = +document.getElementById('auto-speed').value;
+    autoInterval = setInterval(() => tryRequest(), 1000 / rps);
+  }
+
+  function toggleAuto() {
+    autoOn = !autoOn;
+    document.getElementById('auto-toggle').classList.toggle('on', autoOn);
+    if (autoOn) startAuto();
+    else { clearInterval(autoInterval); autoInterval = null; }
+  }
+
+  // ── Boot ───────────────────────────────────────────────
+  updateBucket(); updateStats();
+  setInterval(tick, 100);
+</script>
+</body>
+</html>
