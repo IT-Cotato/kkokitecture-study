@@ -1,0 +1,1 @@
+🔗 [정리한 노션 링크](https://www.notion.so/16-7-26-presentation-md-3a82c2a9e0928068a025d9a9a4f83a0f?v=32a2c2a9e092805b95f9000c90e4ef4f&source=copy_link)
