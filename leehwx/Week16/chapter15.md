@@ -143,7 +143,7 @@ Params 예시:
 
 가장 먼저 떠오르는 해결책은 데이터를 **샤딩(sharding)** 하여 여러 저장 서버에 나눠 저장하는 것이다. 예를 들어 `user_id` 기준으로 샤딩할 수 있다.
 
-!image.png
+<img width="436" height="312" alt="Image" src="https://github.com/user-attachments/assets/3b0408e1-29ba-4956-b9e5-bc34398bbc21" />
 
 샤딩으로 저장 공간 문제는 해결했지만, 저장 서버 장애 시 데이터 손실 위험이 남는다. 
 
@@ -153,7 +153,7 @@ Params 예시:
 - **같은 리전(region) 복제**와 **여러 리전 간 복제**를 모두 지원한다. 리전은 AWS 데이터센터가 위치한 지리적 영역이다.
 - 여러 리전에 파일을 중복 저장해 데이터 손실을 막고 가용성을 보장한다. (버킷은 파일 시스템의 폴더와 같은 개념)
 
-!image.png
+<img width="616" height="252" alt="Image" src="https://github.com/user-attachments/assets/ffd44fef-9bd9-4eca-9547-58e43bf95542" />
 
 이후 다음과 같은 부분을 추가로 개선한다.
 
@@ -164,7 +164,7 @@ Params 예시:
 
 이 개선을 적용하면 웹 서버, 메타데이터 DB, 파일 저장소가 단일 서버에서 성공적으로 분리된다.
 
-!image.png
+<img width="436" height="546" alt="Image" src="https://github.com/user-attachments/assets/739ef86e-1b68-4b18-876b-7549b277795f" />
 
 ## 동기화 충돌(Sync conflicts)
 
@@ -178,7 +178,7 @@ Params 예시:
 
 ## 개략적 설계안(High-level design)
 
-!image.png
+<img width="596" height="474" alt="Image" src="https://github.com/user-attachments/assets/4644a550-39a3-4bac-b1a1-350ca8886d6e" />
 
 주요 컴포넌트는 다음과 같다.
 
@@ -215,11 +215,11 @@ Params 예시:
 - 보안을 위해 각 블록을 암호화한 뒤 클라우드 저장소로 전송
 - 블록을 클라우드 저장소에 업로드
 
-!image.png
+<img width="622" height="360" alt="Image" src="https://github.com/user-attachments/assets/40ad1cd3-68e2-409e-b446-63ffad780d5d" />
 
 델타 동기화 시에는 변경된 블록만 전송한다. 예를 들어 "block 2"와 "block 5"만 바뀌었다면 그 두 블록만 클라우드 저장소에 올린다.
 
-!image.png
+<img width="540" height="466" alt="Image" src="https://github.com/user-attachments/assets/63367380-64e0-4924-b8db-9e48c81ef947" />
 
 ## 높은 일관성 요구사항(High consistency requirement)
 
@@ -234,7 +234,7 @@ Params 예시:
 
 ## 메타데이터 데이터베이스
 
-!image.png
+<img width="628" height="448" alt="Image" src="https://github.com/user-attachments/assets/6a27ceee-744d-4e97-a3e3-f04393112c2a" />
 
 주요 테이블
 
@@ -247,7 +247,7 @@ Params 예시:
 
 ## 업로드 절차(Upload flow)
 
-!image.png
+<img width="640" height="380" alt="Image" src="https://github.com/user-attachments/assets/b04771fe-5f65-4366-b806-3b9ea79d136f" />
 
 파일 업로드 시 두 요청이 **병렬로** 전송된다(둘 다 클라이언트 1에서 시작).
 
@@ -277,7 +277,7 @@ Params 예시:
 - 클라이언트 A가 **온라인**일 때 다른 클라이언트가 파일을 바꾸면, 알림 서비스가 변경 사실을 알려 최신 데이터를 받아가게 한다.
 - 클라이언트 A가 **오프라인**일 때 파일이 바뀌면 변경 정보가 캐시에 저장되고, 다시 온라인이 되면 최신 변경분을 받아간다.
 
-!image.png
+<img width="622" height="334" alt="Image" src="https://github.com/user-attachments/assets/e53426cd-2562-4fc4-b431-08035924c642" />
 
 변경을 알게 된 클라이언트는 먼저 API 서버로 메타데이터를 요청한 뒤 블록을 내려받아 파일을 복원한다.
 
