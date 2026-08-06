@@ -1,0 +1,1 @@
+🔗 [정리한 노션 링크](https://www.notion.so/12-6-28-11-38c2c2a9e092805a8fb9d69feec2562d?v=32a2c2a9e092805b95f9000c90e4ef4f&source=copy_link)
